@@ -1,0 +1,209 @@
+!DOCTYPE html>
+<html>
+<head>
+  <title>Fake Store</title>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    input, select {
+      padding: 8px;
+      font-size: 14px;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .card {
+      width: 300px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      padding: 15px;
+      text-align: center;
+      transition: transform 0.3s, box-shadow 0.3s;
+      background: #fff;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    }
+
+    img {
+      width: 100%;
+      height: 200px;
+      object-fit: contain;
+    }
+
+    .title {
+      font-weight: bold;
+      margin: 10px 0;
+    }
+
+    .price {
+      color: green;
+      font-size: 18px;
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    #status {
+      text-align: center;
+      font-size: 18px;
+      margin: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🛍️ Fake Store</h1>
+
+<div class="controls">
+  <input type="text" id="search" placeholder="Search products..." />
+
+  <select id="category">
+    <option value="all">All Categories</option>
+  </select>
+
+  <select id="sort">
+    <option value="">Sort By Price</option>
+    <option value="low">Low → High</option>
+    <option value="high">High → Low</option>
+  </select>
+</div>
+
+<div id="status">Loading...</div>
+<div class="container" id="products"></div>
+
+<script>
+let allProducts = [];
+
+//  Fetch API
+async function fetchProducts() {
+  document.getElementById('status').innerText = "Loading...";
+
+  try {
+    const res = await fetch('https:/fakestoreapi.com/products/');
+    const data = await res.json();
+
+    allProducts = data;
+
+    populateCategories(data);
+    displayProducts(data);
+
+    document.getElementById('status').innerText = "";
+  } catch (error) {
+    document.getElementById('status').innerText = "Failed to load data";
+  }
+}
+
+//  Display Products
+function displayProducts(data) {
+  const container = document.getElementById('products');
+  container.innerHTML = "";
+
+  data.forEach(p => {
+    const card = document.createElement('div');
+    card.className = "card";
+
+    card.innerHTML = `
+      <img src="${p.image}" />
+      <div class="title">${p.title.substring(0, 50)}</div>
+      <div class="price">$${p.price}</div>
+      <div>${p.description.substring(0, 60)}...</div>
+      <button onclick="viewMore('${p.title}','${p.description}')">View More</button>
+      <button onclick="addToCart(${p.id})">Add to Cart</button>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+//  View More
+function viewMore(title, desc) {
+  alert(title + "\\n\\n" + desc);
+}
+
+//  Search
+document.getElementById('search').addEventListener('input', function(e) {
+  const value = e.target.value.toLowerCase();
+  const filtered = allProducts.filter(p => 
+    p.title.toLowerCase().includes(value)
+  );
+  displayProducts(filtered);
+});
+
+// Category Filter
+function populateCategories(data) {
+  const select = document.getElementById('category');
+  const categories = [...new Set(data.map(p => p.category))];
+
+  categories.forEach(cat => {
+    const option = document.createElement('option');
+    option.value = cat;
+    option.innerText = cat;
+    select.appendChild(option);
+  });
+}
+
+document.getElementById('category').addEventListener('change', function(e) {
+  const value = e.target.value;
+
+  if (value === "all") {
+    displayProducts(allProducts);
+  } else {
+    const filtered = allProducts.filter(p => p.category === value);
+    displayProducts(filtered);
+  }
+});
+
+//  Sort
+document.getElementById('sort').addEventListener('change', function(e) {
+  const value = e.target.value;
+  let sorted = [...allProducts];
+
+  if (value === "low") {
+    sorted.sort((a,b) => a.price - b.price);
+  } else if (value === "high") {
+    sorted.sort((a,b) => b.price - a.price);
+  }
+
+  displayProducts(sorted);
+});
+
+//  Add to Cart (localStorage)
+function addToCart(id) {
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  cart.push(id);
+  localStorage.setItem('cart', JSON.stringify(cart));
+  alert("Added to cart");
+}
+
+// Init
+fetchProducts();
+</script>
+
+</body>
+</html>
